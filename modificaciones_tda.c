@@ -103,7 +103,6 @@ int funcion_cmp_logs(void* log_a, void* log_b){
 
   char* tiempo_a =  ((linea_registro_t*)log_a)->fecha;
   char* tiempo_b = ((linea_registro_t*)log_b)->fecha;
-
   
   const char* ip_a = ((linea_registro_t*)log_a)->ip;
   const char* ip_b = ((linea_registro_t*)log_b)->ip;
@@ -121,15 +120,13 @@ int funcion_cmp_logs(void* log_a, void* log_b){
   int diferencia_ips = funcion_cmp_ip(ip_a, ip_b);
   int diferencia_recursos = strcmp(recurso_a, recurso_b);
   int diferencia_rutas = strcmp(ruta_a, ruta_b);
-
-  // printf("TIEMPO_A: %s TIEMPO_B:%s\n",tiempo_a,tiempo_b);
-  // printf("%f\n",diferencia);
-  
+ 
   /*
   Invertir el heap de maximos:
   Para que algo flote en upheap cmp tiene que ser > 0. 
   Si cmp es > 0, significa q return 1 cuando cmp (a,b) < 0.  2
   */
+
   if(diferencia_hora > 0){
     return 1;
   }
@@ -179,7 +176,7 @@ int funcion_cmp_registros(void* a,void* b){
   cargar_linea_registro(registros[0],log_a);
   cargar_linea_registro(registros[1],log_b);
 
-  int comparacion = funcion_cmp_logs((void*)registros[0],(void*)registros[1]);
+  int comparacion = (-1) * funcion_cmp_logs((void*)registros[0],(void*)registros[1]);
 
   linea_registro_destruir(registros,2);
 
