@@ -15,11 +15,12 @@
 #include "heap.h"
 #include "modificaciones_tda.h"
 
+
+#define KILOBYTE 1000
+
 const char* ORDENAR_ARCHIVO = "ordenar_archivo";
 const char* AGREGAR_ARCHIVO = "agregar_archivo";
 const char* VER_VISITANTES = "ver_visitantes";
-
-// gcc -g -Wall -Wconversion -Wno-sign-conversion -Werror -o tp2 *.c
 
 /*Esta funcion se encarga de cargar una particion con sus K lineas correspondientes.*/
 void cargar_particion(FILE* log_original,FILE* particion,size_t K_LINEAS, size_t* cantidad_registros_cargados,size_t cantidad_lineas_archivo){
@@ -93,7 +94,7 @@ void generar_log_ordenado(FILE** particiones_temporales,size_t K_PARTICIONES,con
      char* linea_escribir = strdup(linea_registro);
      char** campos = split(linea_escribir,'\t');
      fprintf(log_ordenado,"%s	%s	%s	%s",campos[0],campos[1],campos[2],campos[3]);
-     
+
      free((char*)((registro_t*)elemento)->linea);
      free((registro_t*)elemento);
      free(linea_escribir);
@@ -112,13 +113,14 @@ void generar_log_ordenado(FILE** particiones_temporales,size_t K_PARTICIONES,con
   fclose(log_ordenado);
 }
 
-bool ordenar_archivo(size_t memoria,const char* archivo,const char* output){
+bool ordenar_archivo(size_t memoria_byte,const char* archivo,const char* output){
   FILE* log_original = fopen(archivo,"r");
   if(!log_original) return false;
   //Cuento las lineas y la linea mas grande.
   size_t cantidad_lineas_archivo = 0;
   size_t tam_max_linea = 0;
 
+  size_t memoria = memoria_byte * KILOBYTE;
 
   char* linea=NULL;
   size_t tam_linea = 0;
@@ -174,7 +176,7 @@ abb_t* encontrar_DoS(hash_t* hash){
 		lista_iter_t* iterador1 = lista_iter_crear(horarios);
 		lista_iter_t* iterador2 = lista_iter_crear(horarios);
 
-		for(int i = 0; i < 5; i++){
+		for(int i = 0; i < 4; i++){
 			lista_iter_avanzar(iterador2);
 		}
 
@@ -207,10 +209,9 @@ void imprimir_DoS(abb_t* arbol){
 }
 
 bool agregar_archivo(const char* archivo, abb_t* abb_ips){
-  FILE* log = fopen(archivo,"r");
+	FILE* log = fopen(archivo,"r");
 	if(!log) return false;
-
-  hash_t* hash = hash_crear(NULL);
+	hash_t* hash = hash_crear(NULL);
 
 	char* linea = NULL;
 	size_t tam_linea = 0;
@@ -261,13 +262,24 @@ void ver_visitantes(char* ip1, char* ip2, abb_t* abb_ips){
 	abb_iter_in_destruir(iterador_abb);
 }
 
+bool comprobar_parametros(int funcion, char** campos){
+	
+	int i = 0;
+
+	while(campos[i]){
+		i++;
+	}
+
+	if (funcion == 0 && i != 3) return false;
+	if (funcion == 1 && i != 2) return false;
+	if (funcion == 2 && i != 3) return false;
+
+	return true;
+}
+
 char* parsear_linea(char* linea,size_t numero_campo,const char* funcion){
   char** campos = split(linea,' ');
   char* campo;
-
-  //agregar_archivo ejemplo.log\n <- sacar \n de aca 
-  //ver_visitantes 192.100.100 192.100.101\n <- 
-  //ordenar_archivo ejemplo.log ejemplo-ordenado.log\n <- 
 
   if(numero_campo==2 || (strcmp(funcion,ORDENAR_ARCHIVO) && numero_campo == 1)){
     campo = strndup(campos[numero_campo],strlen(campos[numero_campo])-1);
@@ -281,92 +293,85 @@ char* parsear_linea(char* linea,size_t numero_campo,const char* funcion){
 
 
 size_t llamar_funcion(char* comando){
-  char** campos = split(comando,' ');
-  size_t funcion;
-  if(strcmp(campos[0],ORDENAR_ARCHIVO)==0){
-    funcion = 0;
-  }
-  else if(strcmp(campos[0],AGREGAR_ARCHIVO)==0){
-    funcion = 1;
-  }
-  else{
-    funcion = 2;
-  }
-  free_strv(campos);
-  return funcion;
+
+	size_t funcion;
+	if(strcmp(comando, ORDENAR_ARCHIVO)==0){
+		funcion = 0;
+	} else if (strcmp(comando, AGREGAR_ARCHIVO)==0){
+		funcion = 1;
+	} else {
+		funcion = 2;
+	}
+
+	return funcion;
 }
 
 int main(int argc, char* argv[]){
 
-  if(argc != 2){
-    fprintf(stderr,"Cantidad de parametros erronea\n");
-    return 1;
-  }
+	if(argc != 2){
+		fprintf(stderr,"Cantidad de parametros erronea\n");
+		return 1;
+	}
 
-  size_t mem_disponible = atoi(argv[1]);
+	size_t mem_disponible = atoi(argv[1]);
 
-  if(mem_disponible <= 0){
-    //Hay que validar que la memoria que le pase no sea menor q la linea max
-    //por eso revienta
-    printf("Memoria insuficiente.");
-    return 1;
-  }
+	abb_t* ab_ips = abb_crear(funcion_cmp_ip,free);
+	if (!ab_ips) return -1;
 
-  //Hay que pasarle la funcion de destruir y comparacion. 
-  //Comparacion es de ips. seguramente
-  abb_t* ab_ips = abb_crear(funcion_cmp_ip,free);
+	char* comando = NULL;
+	size_t cap = 0;
+	ssize_t leidos;
 
-  char* comando = NULL;
-  size_t cap = 0;
-  ssize_t leidos;
+	leidos = getline(&comando,&cap,stdin);
 
-  leidos = getline(&comando,&cap,stdin);
+	while(leidos!=-1){
 
-  while(leidos!=-1){
+		char** campos = split(comando, ' ');
+		size_t funcion = llamar_funcion(campos[0]);
 
-    size_t funcion = llamar_funcion(comando);
-    //printf("FUNCION: %zu\n",funcion);
-    
-      if(funcion==0){
-        char* input = parsear_linea(comando,1,ORDENAR_ARCHIVO);
-        char* output = parsear_linea(comando,2,ORDENAR_ARCHIVO);
+		if(funcion==0){
+			if (!comprobar_parametros(funcion, campos)){
+				fprintf(stderr,"Cantidad de parametros erronea\n");
+			} else {
+				char* input = parsear_linea(comando,1,ORDENAR_ARCHIVO);
+				char* output = parsear_linea(comando,2,ORDENAR_ARCHIVO);
+				if(ordenar_archivo(mem_disponible,input,output)){
+					printf("OK\n");
+				} else {
+					fprintf(stderr,"Error en comando ordenar_archivo\n");
+				}
+				free(input);
+				free(output);
+			}
+      		} else if (funcion==1) {
+			if (!comprobar_parametros(funcion, campos)){
+				fprintf(stderr,"Cantidad de parametros erronea\n");
+			} else {
+				char* input = parsear_linea(comando,1,AGREGAR_ARCHIVO);
+				if(agregar_archivo(input,ab_ips)) printf("OK\n");
+				else fprintf(stderr,"Error en comando agregar_archivo\n");
+				free(input);
+			}
+		} else {
+			if (!comprobar_parametros(funcion, campos)){
+				fprintf(stderr,"Cantidad de parametros erronea\n");
+			} else {
+				if(abb_cantidad(ab_ips)==0){
+					fprintf(stderr,"Error en comando ver_visitantes\n");
+				} else {
+					char* ip_a = parsear_linea(comando,1,VER_VISITANTES);
+					char* ip_b = parsear_linea(comando,2,VER_VISITANTES);
+					ver_visitantes(ip_a,ip_b,ab_ips);
+					free(ip_a);
+					free(ip_b);
+					printf("OK\n");
+				}
+			}
+		}
+		leidos = getline(&comando,&cap,stdin);
+	}
 
-        //printf("%s\n",input);
-        //printf("%s\n",output);
-        
-        if(ordenar_archivo(mem_disponible,input,output)) printf("OK\n");
-        else fprintf(stderr,"Error en comando ordenar_archivo\n");
-        free(output);
-      }
-      else if (funcion==1) {
-        char* input = parsear_linea(comando,1,AGREGAR_ARCHIVO);
-        
-        //printf("%s",input);
-        
-        if(agregar_archivo(input,ab_ips)) printf("OK\n");
-        else fprintf(stderr,"Error en comando agregar_archivo\n");
-        } 
-	else if (funcion==2){
-          if(abb_cantidad(ab_ips)==0){
-            fprintf(stderr,"Error en comando ver_visitantes\n");
-          }
-          else{
-          char* ip_a = parsear_linea(comando,1,VER_VISITANTES);
-          char* ip_b = parsear_linea(comando,2,VER_VISITANTES);
-        
-          //printf("%s",ip_a);
-          //printf("%s",ip_b);
-        
-          ver_visitantes(ip_a,ip_b,ab_ips);
-          free(ip_a);
-          free(ip_b);
-	  printf("OK\n");
-          }
-      }
-    leidos = getline(&comando,&cap,stdin);
-  }
-
-  abb_destruir(ab_ips);
-  free(comando);
-  return 0;
+	abb_destruir(ab_ips);
+	free(comando);
+	return 0;
 }

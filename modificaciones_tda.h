@@ -3,7 +3,10 @@
 
 #include <stdbool.h>  /* bool */
 #include <stddef.h>	  /* size_t */
-
+#include <time.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
 
 
 typedef struct linea_registro {
