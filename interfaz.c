@@ -262,9 +262,9 @@ void ver_visitantes(char* ip1, char* ip2, abb_t* abb_ips){
 	abb_iter_in_destruir(iterador_abb);
 }
 
-bool comprobar_parametros(int funcion, char** campos){
+bool comprobar_parametros(size_t funcion, char** campos){
 	
-	int i = 0;
+	size_t i = 0;
 
 	while(campos[i]){
 		i++;
@@ -329,23 +329,20 @@ int main(int argc, char* argv[]){
 		char** campos = split(comando, ' ');
 		size_t funcion = llamar_funcion(campos[0]);
 
-		if(funcion==0){
+		if (funcion==0) {
 			if (!comprobar_parametros(funcion, campos)){
-				fprintf(stderr,"Cantidad de parametros erronea\n");
+				fprintf(stderr,"Error en comando ordenar_archivo\n");
 			} else {
 				char* input = parsear_linea(comando,1,ORDENAR_ARCHIVO);
 				char* output = parsear_linea(comando,2,ORDENAR_ARCHIVO);
-				if(ordenar_archivo(mem_disponible,input,output)){
-					printf("OK\n");
-				} else {
-					fprintf(stderr,"Error en comando ordenar_archivo\n");
-				}
+				if(ordenar_archivo(mem_disponible,input,output)) printf("OK\n");
+				else fprintf(stderr,"Error en comando ordenar_archivo\n");
 				free(input);
 				free(output);
 			}
       		} else if (funcion==1) {
 			if (!comprobar_parametros(funcion, campos)){
-				fprintf(stderr,"Cantidad de parametros erronea\n");
+				fprintf(stderr,"Error en comando agregar_archivo\n");
 			} else {
 				char* input = parsear_linea(comando,1,AGREGAR_ARCHIVO);
 				if(agregar_archivo(input,ab_ips)) printf("OK\n");
@@ -354,7 +351,7 @@ int main(int argc, char* argv[]){
 			}
 		} else {
 			if (!comprobar_parametros(funcion, campos)){
-				fprintf(stderr,"Cantidad de parametros erronea\n");
+				fprintf(stderr,"Error en comando ver_visitantes\n");
 			} else {
 				if(abb_cantidad(ab_ips)==0){
 					fprintf(stderr,"Error en comando ver_visitantes\n");
